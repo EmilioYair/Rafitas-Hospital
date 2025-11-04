@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido - Rafita's Hospital</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <%- include('../partials/header', { cookies: cookies }) %>
+
+        <main>
+            <section class="card text-center" style="background-color: var(--primary-color); color: white; padding: 60px 30px;">
+                <header class="dashboard-header">
+                    <h2 style="color: white;">Bienvenido a Rafita's Hospital</h2>
+                    <p style="color: #f0f0f0; font-size: 18px;">Tu salud es nuestra prioridad. Cuidamos de ti y tu familia.</p>
+                </header>
+                <a href="/find-doctors" class="btn btn-secondary" style="font-size: 16px;">Buscar Doctores</a>
+            </section>
+
+            <section class="card">
+                <header class="card-header">
+                    <h3>Nuestras Especialidades</h3>
+                    <a href="/find-doctors" class="btn btn-primary btn-sm">Ver Todos los Doctores</a>
+                </header>
+                <div class="specialty-grid">
+                    <% if (especialidades && especialidades.length > 0) { %>
+                        <% especialidades.forEach(esp => { %>
+                            <div class="specialty-card">
+                                <h4><%= esp %></h4>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No hay especialidades disponibles en este momento.</p>
+                    <% } %>
+                </div>
+            </section>
+
+            <section class="card">
+                <header class="card-header">
+                    <h3>Síguenos en Instagram</h3>
+                    <a href="https://www.instagram.com/rafita_hospital/" target="_blank" class="btn btn-primary">@rafita_hospital</a>
+                </header>
+                <div class="instagram-grid">
+                    <div class="insta-post">
+                        <a href="https://www.instagram.com/p/DPfOC-JgDu4" target="_blank" ><img src="/images/especialistas.png" alt="Reels"></a>
+                    </div>
+                    <div class="insta-post">
+                        <a href="https://www.instagram.com/p/DPRsnnEjh3o" target="_blank"><img src="/images/destacada.png" alt="Reels"></a>
+                    </div>
+                    <div class="insta-post">
+                        <a href="https://www.instagram.com/p/DPfNov6AE9b" target="_blank"><img src="/images/agendar.png" alt="Post de Instagram"></a>
+                    </div>
+                    <div class="insta-post">
+                        <img src="/images/Hosp.png" alt="Post de Instagram">
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <%- include('../partials/footer') %>
+    
+    <div id="login-modal" class="modal"></div>
+    <div id="signup-modal" class="modal"></div>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>

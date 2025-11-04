@@ -1,0 +1,27 @@
+<header class="main-header">
+    <div class="logo">
+        <img width="30" height="40" src="/images/Gemini_Generated_Image_clyrt9clyrt9clyr.png" alt="Logo Rafita's Hospital">
+        <h1>Rafita's Hospital</h1>
+    </div>
+    <nav class="main-nav">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard">Panel</a></li>
+            <li><a href="/find-doctors">Buscar Doctores</a></li>
+            <li><a href="/admin">Admin</a></li>
+            <li><a href="/manage-doctors">Gestionar Doctores</a></li>
+        </ul>
+    </nav>
+    <div class="user-actions">
+        
+        <% if (cookies.usuario_nombre) { %>
+            <span>Hola, <%= cookies.usuario_nombre %></span>
+            <a href="/logout" id="logout-btn" class="btn btn-secondary">Cerrar Sesión</a>
+        
+        <% } else { %>
+            <button id="login-btn" class="btn btn-primary">Iniciar Sesión</button>
+            <button id="signup-btn" class="btn btn-secondary">Registrarse</button>
+        <% } %>
+
+    </div>
+</header>

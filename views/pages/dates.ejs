@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citas Médicas | Rafita's Hospital</title>
+  <link rel="stylesheet" href="/css/style.css">
+  
+  <style>
+    .cancel-btn {
+        color: red;
+        font-weight: bold;
+        text-decoration: none;
+        margin-left: 15px;
+        cursor: pointer;
+    }
+    .cancel-btn:hover {
+        text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <%- include('../partials/header', { cookies: cookies }) %>
+
+    <main class="dashboard-grid"> 
+      
+      <section class="main-content">
+        <header class="dashboard-header"> 
+          <h2>Panel de Citas</h2>
+          <p>Agenda una nueva cita y revisa tus próximas visitas.</p>
+        </header>
+  
+        <section class="card">
+          <header class="card-header">
+            <h3>Agendar Nueva Cita</h3>
+          </header>
+          <form id="cita-form">
+            
+            <div class="form-group">
+              <label for="cita-doctor">Doctor</label>
+              <select id="cita-doctor" name="doctor" required>
+                <option value="">-- Selecciona un doctor --</option>
+                
+                <% if (doctores && doctores.length > 0) { %>
+                    <% doctores.forEach(doctor => { %>
+                        <option value="<%= doctor.nombreCompleto %>">
+                            <%= doctor.nombreCompleto %> (<%= doctor.especialidad %>)
+                        </option>
+                    <% }) %>
+                <% } %>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="cita-fecha">Fecha</label>
+              <input type="date" id="cita-fecha" name="fecha" required>
+            </div>
+            <div class="form-group">
+              <label for="cita-hora">Hora</label>
+              <input type="time" id="cita-hora" name="hora" required>
+            </div>
+            <div class="form-group">
+              <label for="cita-motivo">Motivo de la Cita</label>
+              <input type="text" id="cita-motivo" name="motivo" required>
+            </div>
+            <button type="submit" class="btn btn-primary full-width">Agendar Cita</button>
+            <p id="cita-message" style="margin-top: 15px;"></p>
+          </form>
+        </section>
+
+        <section class="card">
+          <header class="card-header">
+            <h3>Calendario</h3>
+          </header>
+          <div class="calendar-header">
+            <button id="prev-month">←</button>
+            <h4 id="month-year">Octubre 2025</h4>
+            <button id="next-month">→</button>
+          </div>
+          <div class="calendar" id="calendar-grid">
+            </div>
+        </section>
+      </section>
+
+      <aside class="sidebar">
+        <section class="card">
+          <h3>Tus Próximas Citas</h3>
+          
+          <ul class="activity-list" id="citas-lista">
+            
+            <% if (citas && citas.length > 0) { %>
+              <% citas.forEach(cita => { %>
+                <li data-id="<%= cita._id %>">
+                  <span class="dot blue"></span>
+                  Cita con <strong><%= cita.doctor %></strong> (<%= cita.motivo %>)
+                  <span class="time">
+                    <%= new Date(cita.fecha).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }) %>, <%= cita.hora %>
+                  </span>
+                  <a class="cancel-btn" data-id="<%= cita._id %>">[X]</a>
+                </li>
+              <% }) %>
+            <% } else { %>
+              <p>No tienes citas programadas.</p>
+            <% } %>
+
+          </ul>
+        </section>
+      </aside>
+
+    </main>
+  </div> 
+
+  <%- include('../partials/footer') %>
+
+  <div id="login-modal" class="modal"></div>
+  <div id="signup-modal" class="modal"></div>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Admin - Rafita's Hospital</title>
+    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .admin-table th, .admin-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+        .admin-table th {
+            background-color: var(--light-gray-color);
+        }
+        
+        /* Usamos los mismos estilos de 'manage-doctors' */
+        .action-btn.delete {
+            background-color: #dc3545;
+            color: white;
+            border-color: #dc3545;
+            font-size: 13px;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <%- include('../partials/header', { cookies: cookies }) %>
+
+        <main>
+            <header class="dashboard-header">
+                <h2>Panel de Administración del Hospital</h2>
+                <p>Gestiona perfiles de doctores y citas de pacientes de forma eficiente.</p>
+            </header>
+            
+            <section class="card">
+                <h3>Resumen del Día</h3>
+                <div class="overview-grid">
+                    <div class="stat-item"><span>Citas Totales</span><strong><%= conteoCitas %></strong></div>
+                    <div class="stat-item"><span>Doctores Activos</span><strong><%= conteoDoctores %></strong></div>
+                    <div class="stat-item"><span>Solicitudes Pendientes</span><strong><%= conteoPendientes %></strong></div>
+                </div>
+            </section>
+
+            <section class="card">
+                <header class="card-header">
+                    <h3>Todas las Citas del Sistema</h3>
+                </header>
+                
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Email Paciente</th>
+                            <th>Doctor</th>
+                            <th>Motivo</th>
+                            <th>Fecha y Hora</th>
+                            <th>Estado</th>
+                            <th>Acciones</th> </tr>
+                    </thead>
+                    <tbody id="admin-citas-tbody"> <% if (citas && citas.length > 0) { %>
+                            <% citas.forEach(cita => { %>
+                                <tr data-id="<%= cita._id %>">
+                                    <td><%= cita.usuario ? cita.usuario.nombre : 'Usuario Eliminado' %></td>
+                                    <td><%= cita.usuario ? cita.usuario.email : 'N/A' %></td>
+                                    <td><%= cita.doctor %></td>
+                                    <td><%= cita.motivo %></td>
+                                    <td><%= new Date(cita.fecha).toLocaleDateString('es-ES') %>, <%= cita.hora %></td>
+                                    <td><%= cita.estado %></td>
+                                    <td>
+                                        <button class="btn action-btn delete" data-id="<%= cita._id %>">Borrar</button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="7" style="text-align: center;">No hay citas registradas en el sistema.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </section>
+            
+             <section class="card">
+                <header class="card-header">
+                    <h3>Gestión Rápida de Doctores</h3>
+                    <a href="/manage-doctors" class="btn btn-primary">Gestionar Doctores</a>
+                </header>
+            </section>
+             
+             <section class="card">
+                <h3>Actividad Reciente</h3>
+                <ul class="activity-list">
+                    <li><span class="dot green"></span>Dr. Johnson añadido a Cardiología <span class="time">hace 2 horas</span></li>
+                    <li><span class="dot blue"></span>Nueva cita agendada <span class="time">hace 4 horas</span></li>
+                    <li><span class="dot yellow"></span>Cita cancelada por el paciente <span class="time">hace 6 horas</span></li>
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <%- include('../partials/footer') %>
+    
+    <div id="login-modal" class="modal"></div>
+    <div id="signup-modal" class="modal"></div>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel - Rafita's Hospital</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <%- include('../partials/header', { cookies: cookies }) %>
+
+        <main class="dashboard-grid">
+            <section class="main-content">
+                <header class="dashboard-header">
+                    <h2>Panel de Cuidado Médico</h2>
+                    <p>Gestiona tus citas y explora proveedores de salud.</p>
+                </header>
+
+                <section class="card">
+                    <header class="card-header">
+                        <h3>Tus Próximas Citas Pendientes</h3>
+                        <a class="btn btn-primary" href="/dates">Agendar/Ver Todas</a>
+                    </header>
+                    
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Motivo</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="citas-pendientes-lista">
+                            
+                            <% if (citasPendientes && citasPendientes.length > 0) { %>
+                                <% citasPendientes.forEach(cita => { %>
+                                    <tr>
+                                        <td><strong><%= cita.doctor %></strong></td>
+                                        <td><%= cita.motivo %></td>
+                                        <td><%= new Date(cita.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) %></td>
+                                        <td><%= cita.hora %></td>
+                                        <td>
+                                            <span class="dot blue"></span>
+                                            <%= cita.estado %>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="5" style="text-align: center;">No tienes citas pendientes.</td>
+                                </tr>
+                            <% } %>
+
+                        </tbody>
+                    </table>
+                </section>
+
+            
+            </section>
+
+            <aside class="sidebar">
+                <div class="sidebar-img">
+                    <img src="/images/Hosp.png" alt="Profesionales de la salud">
+                </div>
+                
+                <section class="card">
+                    <h3>Tu Perfil</h3>
+                    <% if (usuario) { %>
+                        <form id="profile-form">
+                            <div class="form-group">
+                                <label for="first-name">Nombre</label>
+                                <input type="text" id="first-name" name="nombre" value="<%= usuario.nombre %>" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="last-name">Apellido</label>
+                                <input type="text" id="last-name" name="apellido" value="<%= usuario.apellido %>" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Correo Electrónico</label>
+                                <input type="email" id="email" name="email" value="<%= usuario.email %>" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Número de Teléfono</label>
+                                <input type="tel" id="phone" name="telefono" value="<%= usuario.telefono || '' %>">
+                            </div>
+                            <div class="form-group">
+                                <label for="dob">Fecha de Nacimiento</label>
+                                <input type="text" id="dob" name="fechaNacimiento" value="<%= usuario.fechaNacimiento || '' %>" placeholder="29/09/2025">
+                            </div>
+                            <button type="submit" class="btn btn-primary full-width">Actualizar Perfil</button>
+                            <p id="profile-message" style="margin-top: 15px;"></p>
+                        </form>
+                    <% } else { %>
+                        <p>Inicia sesión para ver tu perfil.</p>
+                    <% } %>
+                </section>
+                
+                <section class="card">
+                    <h3>Buscar Doctores</h3>
+                    <form>
+                         <div class="form-group"><label for="doctor-name">Nombre del Doctor</label><input type="text" id="doctor-name"></div>
+                         <div class="form-group"><label for="specialty">Especialidad</label><select id="specialty"><option>Seleccionar Especialidad</option></select></div>
+                        <button type="submit" class="btn btn-primary full-width">Buscar Doctores</button>
+                    </form>
+                </section>
+            </aside>
+        </main>
+    </div>
+
+    <%- include('../partials/footer') %>
+
+    <div id="login-modal" class="modal"></div>
+    <div id="signup-modal" class="modal"></div>
+
+    <script src="/js/script.js"></script>
+
+</body>
+</html>

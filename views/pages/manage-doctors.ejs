@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Doctores - Rafita's Hospital</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .doctor-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .doctor-table th, .doctor-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+        .doctor-table th {
+            background-color: var(--light-gray-color);
+        }
+        .doctor-table .action-btn {
+            font-size: 13px;
+            padding: 5px 10px;
+            margin-right: 5px;
+        }
+        .action-btn.edit {
+            background-color: #ffc107;
+            color: #212529;
+            border-color: #ffc107;
+        }
+        .action-btn.delete {
+            background-color: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <%- include('../partials/header', { cookies: cookies }) %>
+
+        <main>
+            <header class="dashboard-header">
+                <h2>Gestión de Doctores</h2>
+                <p>Añadir, editar o eliminar perfiles de doctores del hospital.</p>
+            </header>
+
+            <section class="card">
+                <h3 id="form-titulo">Añadir Nuevo Doctor</h3>
+                <form id="doctor-form" data-mode="crear" data-id="">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label for="doc-nombre">Nombre Completo</label>
+                            <input type="text" id="doc-nombre" name="nombreCompleto" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="doc-especialidad">Especialidad</label>
+                            <input type="text" id="doc-especialidad" name="especialidad" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="doc-consultorio">Consultorio</label>
+                            <input type="text" id="doc-consultorio" name="consultorio" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="doc-email">Email</label>
+                            <input type="email" id="doc-email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="doc-telefono">Teléfono</label>
+                            <input type="tel" id="doc-telefono" name="telefono">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="form-submit-btn">Guardar Doctor</button>
+                    <button type="button" class="btn btn-secondary" id="form-cancel-btn" style="display: none;">Cancelar</button>
+                    <p id="doctor-message" style="margin-top: 15px;"></p>
+                </form>
+            </section>
+
+            <section class="card">
+                <h3>Doctores Registrados</h3>
+                <table class="doctor-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Especialidad</th>
+                            <th>Consultorio</th>
+                            <th>Email</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="doctor-list-tbody">
+                        <% if (doctores && doctores.length > 0) { %>
+                            <% doctores.forEach(doctor => { %>
+                                <tr data-id="<%= doctor._id %>">
+                                    <td data-field="nombreCompleto"><%= doctor.nombreCompleto %></td>
+                                    <td data-field="especialidad"><%= doctor.especialidad %></td>
+                                    <td data-field="consultorio"><%= doctor.consultorio %></td>
+                                    <td data-field="email"><%= doctor.email %></td>
+                                    <td>
+                                        <button class="btn action-btn edit" data-id="<%= doctor._id %>">Editar</button>
+                                        <button class="btn action-btn delete" data-id="<%= doctor._id %>">Borrar</button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5">No hay doctores registrados.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+    
+    <%- include('../partials/footer') %>
+    
+    <div id="login-modal" class="modal"></div>
+    <div id="signup-modal" class="modal"></div>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>
