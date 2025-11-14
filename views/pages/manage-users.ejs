@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Usuarios - Rafita's Hospital</title>
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <style>
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: var(--white-color);
+        }
+        .users-table thead {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .users-table th,
+        .users-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .users-table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .role-admin {
+            background-color: #ff6b6b;
+            color: white;
+        }
+        .role-user {
+            background-color: #4ecdc4;
+            color: white;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .btn-xs {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .btn-promote {
+            background-color: #ffd700;
+            color: #333;
+        }
+        .btn-promote:hover {
+            background-color: #ffed4e;
+        }
+        .btn-demote {
+            background-color: #95a5a6;
+            color: white;
+        }
+        .btn-demote:hover {
+            background-color: #7f8c8d;
+        }
+        .btn-delete {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <%- include('../partials/header', { cookies: cookies }) %>
+
+        <main class="centered-content">
+            <header class="dashboard-header">
+                <h2>Gestionar Usuarios</h2>
+                <p>Administra los roles de los usuarios del sistema</p>
+            </header>
+
+            <section class="card">
+                <h3>Lista de Usuarios</h3>
+                
+                <% if (usuarios && usuarios.length > 0) { %>
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre Completo</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Rol Actual</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% usuarios.forEach(usuario => { %>
+                                <tr>
+                                    <td><%= usuario.nombre %> <%= usuario.apellido %></td>
+                                    <td><%= usuario.email %></td>
+                                    <td><%= usuario.telefono || '-' %></td>
+                                    <td>
+                                        <span class="role-badge <%= usuario.rol === 'admin' ? 'role-admin' : 'role-user' %>">
+                                            <%= usuario.rol === 'admin' ? 'Administrador' : 'Usuario' %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <% if (usuario.rol === 'usuario') { %>
+                                                <button class="btn btn-primary btn-xs promote-btn" data-user-id="<%= usuario._id %>">
+                                                    Hacer Admin
+                                                </button>
+                                            <% } else if (usuario._id !== cookies.usuario_id) { %>
+                                                <button class="btn btn-demote btn-xs demote-btn" data-user-id="<%= usuario._id %>">
+                                                    Remover Admin
+                                                </button>
+                                            <% } else { %>
+                                                <span style="color: #999; font-size: 12px;">No puedes cambiar tu propio rol</span>
+                                            <% } %>
+                                            <% if (usuario._id !== cookies.usuario_id) { %>
+                                                <button class="btn btn-delete btn-xs delete-btn" data-user-id="<%= usuario._id %>" data-user-name="<%= usuario.nombre %>">
+                                                    Eliminar
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } else { %>
+                    <p>No hay usuarios disponibles.</p>
+                <% } %>
+            </section>
+        </main>
+    </div>
+
+    <%- include('../partials/footer') %>
+
+    <div id="login-modal" class="modal"></div>
+    <div id="signup-modal" class="modal"></div>
+
+    <script>
+        document.querySelectorAll('.promote-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const userId = this.dataset.userId;
+                if (confirm('¿Estás seguro de que quieres promover a este usuario a administrador?')) {
+                    try {
+                        const response = await fetch(`/usuarios/${userId}/promover-admin`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            alert('Usuario promovido a administrador correctamente');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error al promover usuario');
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.demote-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const userId = this.dataset.userId;
+                if (confirm('¿Estás seguro de que quieres remover los permisos de administrador?')) {
+                    try {
+                        const response = await fetch(`/usuarios/${userId}/remover-admin`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            alert('Permisos de administrador removidos correctamente');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error al remover permisos');
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const userId = this.dataset.userId;
+                const userName = this.dataset.userName;
+                if (confirm(`¿Estás seguro de que quieres ELIMINAR al usuario ${userName}? Esta acción no se puede deshacer.`)) {
+                    try {
+                        const response = await fetch(`/usuarios/${userId}/eliminar`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            alert('Usuario eliminado correctamente');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error al eliminar usuario');
+                    }
+                }
+            });
+        });
+    </script>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>

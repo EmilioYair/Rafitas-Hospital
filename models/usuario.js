@@ -28,6 +28,11 @@ const UsuarioSchema = new Schema({
         type: String,
         required: [true, "La contraseña es obligatoria"]
     },
+    rol: {
+        type: String,
+        enum: ['usuario', 'admin'],
+        default: 'usuario'
+    },
     fechaRegistro: {
         type: Date,
         default: Date.now

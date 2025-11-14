@@ -42,7 +42,8 @@ const loginUsuario = async (email, password) => {
         }
         return {
             id: usuario.id,
-            nombre: usuario.nombre
+            nombre: usuario.nombre,
+            rol: usuario.rol
         };
     } catch (error) {
         console.error("Error en loginUsuario:", error.message);
@@ -93,10 +94,92 @@ const actualizarUsuario = async (usuarioId, datosActualizados) => {
     }
 };
 
-// Exportamos las nuevas funciones
+/**
+ * Obtiene todos los usuarios (sin contraseña)
+ */
+const obtenerTodosLosUsuarios = async () => {
+    try {
+        const usuarios = await Usuario.find().select('-password');
+        return usuarios;
+    } catch (error) {
+        console.error("Error al obtener usuarios:", error.message);
+        throw error;
+    }
+};
+
+/**
+ * Promueve un usuario a admin
+ */
+const promoverAAdmin = async (usuarioId) => {
+    try {
+        const usuarioActualizado = await Usuario.findByIdAndUpdate(
+            usuarioId,
+            { rol: 'admin' },
+            { new: true, runValidators: true }
+        ).select('-password');
+        
+        if (!usuarioActualizado) {
+            throw new Error('Usuario no encontrado');
+        }
+        console.log("Usuario promovido a admin:", usuarioActualizado);
+        return usuarioActualizado;
+    } catch (error) {
+        console.error("Error al promover usuario a admin:", error.message);
+        throw error;
+    }
+};
+
+/**
+ * Degrada un admin a usuario normal
+ */
+const descensoDeAdmin = async (usuarioId) => {
+    try {
+        const usuarioActualizado = await Usuario.findByIdAndUpdate(
+            usuarioId,
+            { rol: 'usuario' },
+            { new: true, runValidators: true }
+        ).select('-password');
+        
+        if (!usuarioActualizado) {
+            throw new Error('Usuario no encontrado');
+        }
+        console.log("Admin degradado a usuario:", usuarioActualizado);
+        return usuarioActualizado;
+    } catch (error) {
+        console.error("Error al degradar admin:", error.message);
+        throw error;
+    }
+};
+
+/**
+ * Elimina un usuario de la base de datos
+ */
+const eliminarUsuario = async (usuarioId) => {
+    try {
+        const usuarioEliminado = await Usuario.findByIdAndDelete(usuarioId);
+        
+        if (!usuarioEliminado) {
+            throw new Error('Usuario no encontrado');
+        }
+        console.log("Usuario eliminado:", usuarioEliminado.email);
+        return {
+            mensaje: 'Usuario eliminado exitosamente',
+            usuario: usuarioEliminado.email
+        };
+    } catch (error) {
+        console.error("Error al eliminar usuario:", error.message);
+        throw error;
+    }
+};
+
+// Exportamos las funciones
 module.exports = {
     registrarUsuario,
     loginUsuario,
-    obtenerUsuarioPorId, // <-- AÑADIDO
-    actualizarUsuario // <-- AÑADIDO
+    obtenerUsuarioPorId,
+    actualizarUsuario,
+    obtenerTodosLosUsuarios,
+    promoverAAdmin,
+    descensoDeAdmin,
+    eliminarUsuario
 };

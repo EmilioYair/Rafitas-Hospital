@@ -16,13 +16,19 @@
                     <h2 style="color: white;">Bienvenido a Rafita's Hospital</h2>
                     <p style="color: #f0f0f0; font-size: 18px;">Tu salud es nuestra prioridad. Cuidamos de ti y tu familia.</p>
                 </header>
-                <a href="/find-doctors" class="btn btn-secondary" style="font-size: 16px;">Buscar Doctores</a>
+                <% if (cookies.usuario_id) { %>
+                    <a href="/find-doctors" class="btn btn-secondary" style="font-size: 16px;">Buscar Doctores</a>
+                <% } else { %>
+                    <a href="#signup-modal" class="btn btn-secondary" style="font-size: 16px;">Regístrate para Buscar Doctores</a>
+                <% } %>
             </section>
 
             <section class="card">
                 <header class="card-header">
                     <h3>Nuestras Especialidades</h3>
-                    <a href="/find-doctors" class="btn btn-primary btn-sm">Ver Todos los Doctores</a>
+                    <% if (cookies.usuario_id) { %>
+                        <a href="/find-doctors" class="btn btn-primary btn-sm">Ver Todos los Doctores</a>
+                    <% } %>
                 </header>
                 <div class="specialty-grid">
                     <% if (especialidades && especialidades.length > 0) { %>
@@ -32,7 +38,7 @@
                             </div>
                         <% }) %>
                     <% } else { %>
-                        <p>No hay especialidades disponibles en este momento.</p>
+                        <p style="text-align: center; color: #666; padding: 30px;">Inicia sesión para ver nuestras especialidades y doctores disponibles.</p>
                     <% } %>
                 </div>
             </section>

@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const session = require('express-session');
 require('dotenv').config(); 
 
 const conectarBD = require('./bd/bd');
@@ -19,7 +20,17 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(cookieParser()); // <-- Solo necesitamos este
+app.use(cookieParser());
+app.use(session({
+    secret: process.env.SECRET_SESSION || 'tu_secreto_aqui',
+    name: 'sessionId',
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+        secure: false,
+        path: "/"
+    }
+}));
 
 // Rutas
 app.use('/', require('./routes/rutas'));

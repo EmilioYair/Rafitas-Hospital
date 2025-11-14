@@ -6,10 +6,14 @@
     <nav class="main-nav">
         <ul>
             <li><a href="/">Home</a></li>
-            <li><a href="/dashboard">Panel</a></li>
-            <li><a href="/find-doctors">Buscar Doctores</a></li>
-            <li><a href="/admin">Admin</a></li>
-            <li><a href="/manage-doctors">Gestionar Doctores</a></li>
+            <% if (cookies.usuario_id) { %>
+                <li><a href="/find-doctors">Buscar Doctores</a></li>
+                <% if (cookies.usuario_rol === 'admin') { %>
+                    <li><a href="/admin">Admin</a></li>
+                    <li><a href="/manage-doctors">Gestionar Doctores</a></li>
+                    <li><a href="/manage-users">Gestionar Usuarios</a></li>
+                <% } %>
+            <% } %>
         </ul>
     </nav>
     <div class="user-actions">
