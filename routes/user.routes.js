@@ -13,6 +13,7 @@ const diasNoDisponibles = ['2025-10-18', '2025-10-19', '2025-10-25', '2025-10-26
 
 // Configuración de Multer para subida de archivos
 let uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
+let isUploadEnabled = true;
 
 // Asegurar que el directorio existe
 if (!fs.existsSync(uploadsDir)) {
@@ -20,6 +21,13 @@ if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
     } catch (err) {
         console.error('Error creating uploads directory:', err);
+        // Fallback to tmp if on Vercel or read-only
+        if (process.env.VERCEL || err.code === 'EROFS') {
+            uploadsDir = '/tmp';
+            isUploadEnabled = true; // Still enabled but in tmp
+        } else {
+            isUploadEnabled = false;
+        }
     }
 }
 
@@ -48,10 +56,16 @@ const upload = multer({
     }
 });
 
-// Todas las rutas requieren verificarSesion
-router.use(verificarSesion);
+// Middleware específico para rutas API que devuelve JSON en error de sesión
+const verificarSesionAPI = (req, res, next) => {
+    if (req.session.usuario || req.cookies.usuario_id) {
+        return next();
+    }
+    res.status(401).json({ error: 'Sesión expirada o no válida. Por favor inicia sesión nuevamente.' });
+};
 
-router.get('/dashboard', async (req, res) => {
+// Rutas de Vistas (HTML)
+router.get('/dashboard', verificarSesion, async (req, res) => {
     let usuario = null;
     let citasPendientes = [];
 
@@ -78,7 +92,7 @@ router.get('/dashboard', async (req, res) => {
     });
 });
 
-router.get('/dates', async (req, res) => {
+router.get('/dates', verificarSesion, async (req, res) => {
     try {
         const usuarioId = req.session.usuario.id;
         const [citasDelUsuario, doctoresDisponibles] = await Promise.all([
@@ -98,7 +112,8 @@ router.get('/dates', async (req, res) => {
     }
 });
 
-router.post('/citas', async (req, res) => {
+// Rutas API (JSON) - Usan verificarSesionAPI
+router.post('/citas', verificarSesionAPI, async (req, res) => {
     try {
         const datosCita = { ...req.body, usuario: req.session.usuario.id };
         const nuevaCita = await crearCita(datosCita);
@@ -108,7 +123,7 @@ router.post('/citas', async (req, res) => {
     }
 });
 
-router.delete('/citas/:id', async (req, res) => {
+router.delete('/citas/:id', verificarSesionAPI, async (req, res) => {
     try {
         const citaId = req.params.id;
         const usuarioId = req.session.usuario.id;
@@ -121,7 +136,7 @@ router.delete('/citas/:id', async (req, res) => {
 
 // --- PERFIL Y UPLOADS ---
 
-router.post('/perfil', upload.single('foto'), async (req, res) => {
+router.post('/perfil', verificarSesionAPI, upload.single('foto'), async (req, res) => {
     try {
         const usuarioId = req.session.usuario.id;
         const datosActualizados = { ...req.body };
@@ -157,7 +172,7 @@ router.post('/perfil', upload.single('foto'), async (req, res) => {
     }
 });
 
-router.delete('/perfil/foto', async (req, res) => {
+router.delete('/perfil/foto', verificarSesionAPI, async (req, res) => {
     try {
         const usuarioId = req.session.usuario.id;
         const usuario = await obtenerUsuarioPorId(usuarioId);
