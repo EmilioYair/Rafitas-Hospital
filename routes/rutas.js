@@ -190,48 +190,69 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Prepare upload directory
-const uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+// Prepare upload directory (with fallback for serverless environments like Vercel)
+let uploadsDir = null;
+let isUploadEnabled = false;
+
+try {
+    uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    isUploadEnabled = true;
+    console.log('✓ Uploads enabled. Directory:', uploadsDir);
+} catch (err) {
+    console.warn('⚠ Uploads disabled (read-only filesystem, e.g., Vercel):', err.message);
+    isUploadEnabled = false;
 }
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadsDir);
-    },
-    filename: function (req, file, cb) {
-        try {
-            const usuarioId = req.session && req.session.usuario ? req.session.usuario.id : 'anon';
-            const ext = path.extname(file.originalname);
-            const filename = `${usuarioId}-${Date.now()}${ext}`;
-            cb(null, filename);
-        } catch (err) {
-            cb(err);
+let upload = null;
+if (isUploadEnabled) {
+    const storage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            cb(null, uploadsDir);
+        },
+        filename: function (req, file, cb) {
+            try {
+                const usuarioId = req.session && req.session.usuario ? req.session.usuario.id : 'anon';
+                const ext = path.extname(file.originalname);
+                const filename = `${usuarioId}-${Date.now()}${ext}`;
+                cb(null, filename);
+            } catch (err) {
+                cb(err);
+            }
         }
-    }
-});
+    });
 
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
-    fileFilter: (req, file, cb) => {
-        const allowed = /jpeg|jpg|png|gif/;
-        const ext = path.extname(file.originalname).toLowerCase();
-        const mimeOk = allowed.test(file.mimetype);
-        const extOk = allowed.test(ext);
-        if (mimeOk && extOk) return cb(null, true);
-        cb(new Error('Tipo de archivo no permitido. Solo imágenes JPG/PNG/GIF.'));
-    }
-});
+    upload = multer({
+        storage: storage,
+        limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+        fileFilter: (req, file, cb) => {
+            const allowed = /jpeg|jpg|png|gif/;
+            const ext = path.extname(file.originalname).toLowerCase();
+            const mimeOk = allowed.test(file.mimetype);
+            const extOk = allowed.test(ext);
+            if (mimeOk && extOk) return cb(null, true);
+            cb(new Error('Tipo de archivo no permitido. Solo imágenes JPG/PNG/GIF.'));
+        }
+    });
+} else {
+    // Fallback for serverless: middleware that skips file upload but doesn't error
+    upload = {
+        single: () => (req, res, next) => {
+            console.warn('⚠ File upload attempted in read-only environment; skipping file save');
+            next();
+        }
+    };
+}
 
 router.post('/perfil', verificarSesion, upload.single('foto'), async (req, res) => {
     try {
         const usuarioId = req.session.usuario.id;
         const datosActualizados = { ...req.body };
 
-        // Si subieron un archivo, asignar su nombre al campo foto
-        if (req.file) {
+        // Si subieron un archivo y las uploads están enabled, asignar su nombre al campo foto
+        if (req.file && isUploadEnabled) {
             datosActualizados.foto = req.file.filename;
         }
 
@@ -240,8 +261,8 @@ router.post('/perfil', verificarSesion, upload.single('foto'), async (req, res) 
 
         const usuarioActualizado = await actualizarUsuario(usuarioId, datosActualizados);
 
-        // Si se subió un nuevo archivo y el usuario tenía uno anterior, eliminar el anterior
-        if (req.file && usuarioPrev && usuarioPrev.foto && usuarioPrev.foto !== usuarioActualizado.foto) {
+        // Si se subió un nuevo archivo y el usuario tenía uno anterior, eliminar el anterior (solo si uploads enabled)
+        if (req.file && isUploadEnabled && usuarioPrev && usuarioPrev.foto && usuarioPrev.foto !== usuarioActualizado.foto) {
             try {
                 const oldPath = path.join(uploadsDir, usuarioPrev.foto);
                 if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
@@ -257,7 +278,7 @@ router.post('/perfil', verificarSesion, upload.single('foto'), async (req, res) 
         res.status(200).json({ mensaje: 'Perfil actualizado exitosamente', usuario: usuarioActualizado });
     } catch (error) {
         // Si hubo un archivo subido pero la actualización falló, borrar el archivo subido para no dejar basura
-        if (req.file) {
+        if (req.file && isUploadEnabled) {
             try {
                 const filePath = path.join(uploadsDir, req.file.filename);
                 if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -277,9 +298,15 @@ router.delete('/perfil/foto', verificarSesion, async (req, res) => {
         if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
         if (!usuario.foto) return res.status(400).json({ error: 'El usuario no tiene una foto' });
 
-        // Borrar archivo físico
-        const filePath = path.join(uploadsDir, usuario.foto);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        // Borrar archivo físico (solo si uploads están enabled)
+        if (isUploadEnabled) {
+            try {
+                const filePath = path.join(uploadsDir, usuario.foto);
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            } catch (err) {
+                console.error('Error al borrar archivo:', err.message);
+            }
+        }
 
         // Actualizar DB para remover referencia
         const usuarioActualizado = await actualizarUsuario(usuarioId, { foto: null });
