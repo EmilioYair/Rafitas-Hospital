@@ -190,7 +190,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Prepare upload directory (with fallback for serverless environments like Vercel)
+// Prepare upload directory (optional, for local development only)
 let uploadsDir = null;
 let isUploadEnabled = false;
 
@@ -202,72 +202,77 @@ try {
     isUploadEnabled = true;
     console.log('✓ Uploads enabled. Directory:', uploadsDir);
 } catch (err) {
-    console.warn('⚠ Uploads disabled (read-only filesystem, e.g., Vercel):', err.message);
+    console.warn('⚠ Local file storage disabled (read-only filesystem, e.g., Vercel):', err.message);
     isUploadEnabled = false;
 }
 
-let upload = null;
-if (isUploadEnabled) {
-    const storage = multer.diskStorage({
-        destination: function (req, file, cb) {
-            cb(null, uploadsDir);
-        },
-        filename: function (req, file, cb) {
-            try {
-                const usuarioId = req.session && req.session.usuario ? req.session.usuario.id : 'anon';
-                const ext = path.extname(file.originalname);
-                const filename = `${usuarioId}-${Date.now()}${ext}`;
-                cb(null, filename);
-            } catch (err) {
-                cb(err);
-            }
+// Configure multer with memory storage as fallback for Vercel
+const memoryStorage = multer.memoryStorage();
+const diskStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        try {
+            const usuarioId = req.session && req.session.usuario ? req.session.usuario.id : 'anon';
+            const ext = path.extname(file.originalname);
+            const filename = `${usuarioId}-${Date.now()}${ext}`;
+            cb(null, filename);
+        } catch (err) {
+            cb(err);
         }
-    });
+    }
+});
 
-    upload = multer({
-        storage: storage,
-        limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
-        fileFilter: (req, file, cb) => {
-            const allowed = /jpeg|jpg|png|gif/;
-            const ext = path.extname(file.originalname).toLowerCase();
-            const mimeOk = allowed.test(file.mimetype);
-            const extOk = allowed.test(ext);
-            if (mimeOk && extOk) return cb(null, true);
-            cb(new Error('Tipo de archivo no permitido. Solo imágenes JPG/PNG/GIF.'));
-        }
-    });
-} else {
-    // Fallback for serverless: middleware that skips file upload but doesn't error
-    upload = {
-        single: () => (req, res, next) => {
-            console.warn('⚠ File upload attempted in read-only environment; skipping file save');
-            next();
-        }
-    };
-}
+const upload = multer({
+    storage: isUploadEnabled ? diskStorage : memoryStorage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|gif/;
+        const ext = path.extname(file.originalname).toLowerCase();
+        const mimeOk = allowed.test(file.mimetype);
+        const extOk = allowed.test(ext);
+        if (mimeOk && extOk) return cb(null, true);
+        cb(new Error('Tipo de archivo no permitido. Solo imágenes JPG/PNG/GIF.'));
+    }
+});
 
 router.post('/perfil', verificarSesion, upload.single('foto'), async (req, res) => {
     try {
         const usuarioId = req.session.usuario.id;
         const datosActualizados = { ...req.body };
 
-        // Si subieron un archivo y las uploads están enabled, asignar su nombre al campo foto
-        if (req.file && isUploadEnabled) {
-            datosActualizados.foto = req.file.filename;
+        // If a file was uploaded, generate a filename and store it in DB
+        if (req.file) {
+            const ext = path.extname(req.file.originalname);
+            const filename = `${usuarioId}-${Date.now()}${ext}`;
+            datosActualizados.foto = filename;
+            
+            // If local storage is enabled, save the file to disk
+            if (isUploadEnabled) {
+                try {
+                    const filePath = path.join(uploadsDir, filename);
+                    fs.writeFileSync(filePath, req.file.buffer);
+                    console.log('Avatar saved to disk:', filePath);
+                } catch (err) {
+                    console.warn('Could not save avatar to disk:', err.message);
+                    // Continue anyway - filename is stored in DB
+                }
+            }
         }
 
-        // Obtener usuario previo para borrar la foto anterior si se reemplaza
+        // Get previous user data to delete old avatar if replacing
         const usuarioPrev = await obtenerUsuarioPorId(usuarioId);
-
         const usuarioActualizado = await actualizarUsuario(usuarioId, datosActualizados);
 
-        // Si se subió un nuevo archivo y el usuario tenía uno anterior, eliminar el anterior (solo si uploads enabled)
+        // Delete old avatar file if replaced (only if uploads enabled)
         if (req.file && isUploadEnabled && usuarioPrev && usuarioPrev.foto && usuarioPrev.foto !== usuarioActualizado.foto) {
             try {
                 const oldPath = path.join(uploadsDir, usuarioPrev.foto);
                 if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+                console.log('Old avatar deleted:', oldPath);
             } catch (err) {
-                console.error('Error al borrar avatar anterior:', err.message);
+                console.error('Error deleting old avatar:', err.message);
             }
         }
 
@@ -277,15 +282,7 @@ router.post('/perfil', verificarSesion, upload.single('foto'), async (req, res) 
 
         res.status(200).json({ mensaje: 'Perfil actualizado exitosamente', usuario: usuarioActualizado });
     } catch (error) {
-        // Si hubo un archivo subido pero la actualización falló, borrar el archivo subido para no dejar basura
-        if (req.file && isUploadEnabled) {
-            try {
-                const filePath = path.join(uploadsDir, req.file.filename);
-                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-            } catch (err) {
-                console.error('Error al limpiar archivo subido tras fallo:', err.message);
-            }
-        }
+        console.error('Profile update error:', error.message);
         res.status(400).json({ error: error.message || 'Error al actualizar el perfil' });
     }
 });
