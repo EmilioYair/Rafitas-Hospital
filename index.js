@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
-require('dotenv').config(); 
+require('dotenv').config();
 
 const conectarBD = require('./bd/bd');
 const app = express();
@@ -33,9 +33,17 @@ app.use(session({
 }));
 
 // Rutas
-app.use('/', require('./routes/rutas'));
+// Rutas
+app.use('/', require('./routes/public.routes'));
+app.use('/', require('./routes/auth.routes'));
+app.use('/', require('./routes/user.routes'));
+app.use('/admin', require('./routes/admin.routes'));
 
 // Iniciar el servidor
-app.listen(port, () => {
-    console.log(`Servidor de Rafita's Hospital corriendo en http://localhost:${port}`);
-});
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Servidor de Rafita's Hospital corriendo en http://localhost:${port}`);
+    });
+}
+
+module.exports = app;
