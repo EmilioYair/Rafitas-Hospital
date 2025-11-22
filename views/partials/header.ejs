@@ -7,6 +7,7 @@
         <ul>
             <li><a href="/">Home</a></li>
             <% if (cookies.usuario_id) { %>
+                <li><a href="/dashboard">Dashboard</a></li>
                 <li><a href="/find-doctors">Buscar Doctores</a></li>
                 <% if (cookies.usuario_rol === 'admin') { %>
                     <li><a href="/admin">Admin</a></li>

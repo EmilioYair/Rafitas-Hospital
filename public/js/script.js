@@ -222,35 +222,47 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Inicializa la lógica del formulario de Perfil en el Dashboard.
      */
-    const initializeProfilePageLogic = () => {
-        const profileForm = document.getElementById('profile-form');
-        if (!profileForm) return;
-        const messageEl = document.getElementById('profile-message');
-        profileForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            messageEl.textContent = 'Actualizando perfil...';
-            messageEl.style.color = '#333';
-            try {
-                const formData = new FormData(profileForm);
-                const datos = Object.fromEntries(formData.entries());
-                const response = await fetch('/perfil', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(datos)
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error);
-                messageEl.textContent = result.mensaje;
-                messageEl.style.color = 'green';
-                setTimeout(() => window.location.reload(), 1500);
-            } catch (error) {
-                messageEl.textContent = error.message;
-                messageEl.style.color = 'red';
-            }
-        });
-    };
-
-    /**
+     const initializeProfilePageLogic = () => {
+         const profileForm = document.getElementById('profile-form');
+         if (!profileForm) return;
+         const messageEl = document.getElementById('profile-message');
+         profileForm.addEventListener('submit', async (event) => {
+             event.preventDefault();
+             messageEl.textContent = 'Actualizando perfil...';
+             messageEl.style.color = '#333';
+             try {
+                 const formData = new FormData(profileForm);
+                 const response = await fetch('/perfil', {
+                     method: 'POST',
+                     body: formData
+                 });
+                 const result = await response.json();
+                 if (!response.ok) throw new Error(result.error);
+                 messageEl.textContent = result.mensaje;
+                 messageEl.style.color = 'green';
+                 setTimeout(() => window.location.reload(), 1500);
+             } catch (error) {
+                 messageEl.textContent = error.message;
+                 messageEl.style.color = 'red';
+             }
+         });
+         // Delete photo button
+         const deletePhotoBtn = document.getElementById('delete-photo-btn');
+         if (deletePhotoBtn) {
+             deletePhotoBtn.addEventListener('click', async (e) => {
+                 e.preventDefault();
+                 if (!confirm('¿Eliminar foto de perfil?')) return;
+                 try {
+                     const response = await fetch('/perfil/foto', { method: 'DELETE' });
+                     const result = await response.json();
+                     if (!response.ok) throw new Error(result.error);
+                     window.location.reload();
+                 } catch (err) {
+                     alert(err.message || 'Error al eliminar la foto');
+                 }
+             });
+         }
+     };    /**
      * Inicializa la lógica de la página de Gestión de Doctores (CRUD).
      */
     const initializeManageDoctorsLogic = () => {

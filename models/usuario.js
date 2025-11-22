@@ -33,6 +33,11 @@ const UsuarioSchema = new Schema({
         enum: ['usuario', 'admin'],
         default: 'usuario'
     },
+    foto: {
+        type: String,
+        required: false,
+        default: null
+    },
     fechaRegistro: {
         type: Date,
         default: Date.now

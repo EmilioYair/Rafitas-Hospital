@@ -1,6 +1,8 @@
 // bd/usuariosBD.js
 const Usuario = require('../models/usuario.js');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Registra un nuevo usuario en la base de datos
@@ -156,11 +158,27 @@ const descensoDeAdmin = async (usuarioId) => {
  */
 const eliminarUsuario = async (usuarioId) => {
     try {
-        const usuarioEliminado = await Usuario.findByIdAndDelete(usuarioId);
-        
-        if (!usuarioEliminado) {
+        // Primero obtenemos al usuario para saber si tiene foto
+        const usuario = await Usuario.findById(usuarioId);
+        if (!usuario) {
             throw new Error('Usuario no encontrado');
         }
+
+        // Si tiene foto, intentar borrar el archivo físico
+        if (usuario.foto) {
+            try {
+                const uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
+                const filePath = path.join(uploadsDir, usuario.foto);
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                    console.log('Archivo de avatar eliminado:', filePath);
+                }
+            } catch (err) {
+                console.error('Error al borrar archivo de avatar:', err.message);
+            }
+        }
+
+        const usuarioEliminado = await Usuario.findByIdAndDelete(usuarioId);
         console.log("Usuario eliminado:", usuarioEliminado.email);
         return {
             mensaje: 'Usuario eliminado exitosamente',

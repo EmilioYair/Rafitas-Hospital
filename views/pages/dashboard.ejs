@@ -69,7 +69,7 @@
                 <section class="card">
                     <h3>Tu Perfil</h3>
                     <% if (usuario) { %>
-                        <form id="profile-form">
+                        <form id="profile-form" enctype="multipart/form-data">
                             <div class="form-group">
                                 <label for="first-name">Nombre</label>
                                 <input type="text" id="first-name" name="nombre" value="<%= usuario.nombre %>" required>
@@ -89,6 +89,22 @@
                             <div class="form-group">
                                 <label for="dob">Fecha de Nacimiento</label>
                                 <input type="text" id="dob" name="fechaNacimiento" value="<%= usuario.fechaNacimiento || '' %>" placeholder="29/09/2025">
+                            </div>
+                            <div class="form-group">
+                                <label>Foto de Perfil</label>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <% if (usuario.foto) { %>
+                                        <img src="/uploads/avatars/<%= usuario.foto %>" alt="Avatar" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:1px solid #ddd;">
+                                    <% } else { %>
+                                        <img src="/images/Hosp.png" alt="Avatar" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:1px solid #ddd;">
+                                    <% } %>
+                                    <div style="flex:1">
+                                        <input type="file" id="foto" name="foto" accept="image/*">
+                                        <% if (usuario.foto) { %>
+                                            <button type="button" id="delete-photo-btn" class="btn" style="margin-top:6px;background:#e74c3c;color:#fff;">Eliminar Foto</button>
+                                        <% } %>
+                                    </div>
+                                </div>
                             </div>
                             <button type="submit" class="btn btn-primary full-width">Actualizar Perfil</button>
                             <p id="profile-message" style="margin-top: 15px;"></p>

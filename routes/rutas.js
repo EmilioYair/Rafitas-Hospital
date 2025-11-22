@@ -3,6 +3,9 @@ const express = require('express');
 const router = express.Router();
 const Usuario = require('../models/usuario');
 const { registrarUsuario, loginUsuario, obtenerUsuarioPorId, actualizarUsuario, obtenerTodosLosUsuarios, promoverAAdmin, descensoDeAdmin, eliminarUsuario } = require('../bd/usuariosBD');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const { obtenerCitasPorUsuario, crearCita, cancelarCita, obtenerTodasLasCitas, obtenerCitasPendientes, borrarCitaAdmin } = require('../bd/citasBD');
 const { crearDoctor, obtenerDoctores, actualizarDoctor, borrarDoctor } = require('../bd/doctoresBD');
 const { verificarSesion, verificarAdmin, verificarUsuarioOAdmin } = require('../middlewares/autenticacion');
@@ -187,19 +190,104 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.post('/perfil', async (req, res) => {
-    if (!req.cookies.usuario_id) return res.status(401).json({ error: 'No autorizado' });
-    try {
-        const usuarioId = req.session.usuario.id;
-        const datosActualizados = req.body;
-        const usuarioActualizado = await actualizarUsuario(usuarioId, datosActualizados);
-        if (datosActualizados.nombre && datosActualizados.nombre !== req.cookies.usuario_nombre) {
-            res.cookie('usuario_nombre', usuarioActualizado.nombre, { httpOnly: true, maxAge: 3600000 });
-        }
-        res.status(200).json({ mensaje: 'Perfil actualizado exitosamente', usuario: usuarioActualizado });
-    } catch (error) {
-        res.status(400).json({ error: error.message || 'Error al actualizar el perfil' });
-    }
+// Prepare upload directory
+const uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        try {
+            const usuarioId = req.session && req.session.usuario ? req.session.usuario.id : 'anon';
+            const ext = path.extname(file.originalname);
+            const filename = `${usuarioId}-${Date.now()}${ext}`;
+            cb(null, filename);
+        } catch (err) {
+            cb(err);
+        }
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|gif/;
+        const ext = path.extname(file.originalname).toLowerCase();
+        const mimeOk = allowed.test(file.mimetype);
+        const extOk = allowed.test(ext);
+        if (mimeOk && extOk) return cb(null, true);
+        cb(new Error('Tipo de archivo no permitido. Solo imágenes JPG/PNG/GIF.'));
+    }
+});
+
+router.post('/perfil', verificarSesion, upload.single('foto'), async (req, res) => {
+    try {
+        const usuarioId = req.session.usuario.id;
+        const datosActualizados = { ...req.body };
+
+        // Si subieron un archivo, asignar su nombre al campo foto
+        if (req.file) {
+            datosActualizados.foto = req.file.filename;
+        }
+
+        // Obtener usuario previo para borrar la foto anterior si se reemplaza
+        const usuarioPrev = await obtenerUsuarioPorId(usuarioId);
+
+        const usuarioActualizado = await actualizarUsuario(usuarioId, datosActualizados);
+
+        // Si se subió un nuevo archivo y el usuario tenía uno anterior, eliminar el anterior
+        if (req.file && usuarioPrev && usuarioPrev.foto && usuarioPrev.foto !== usuarioActualizado.foto) {
+            try {
+                const oldPath = path.join(uploadsDir, usuarioPrev.foto);
+                if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+            } catch (err) {
+                console.error('Error al borrar avatar anterior:', err.message);
+            }
+        }
+
+        if (datosActualizados.nombre && datosActualizados.nombre !== req.cookies.usuario_nombre) {
+            res.cookie('usuario_nombre', usuarioActualizado.nombre, { httpOnly: true, maxAge: 3600000 });
+        }
+
+        res.status(200).json({ mensaje: 'Perfil actualizado exitosamente', usuario: usuarioActualizado });
+    } catch (error) {
+        // Si hubo un archivo subido pero la actualización falló, borrar el archivo subido para no dejar basura
+        if (req.file) {
+            try {
+                const filePath = path.join(uploadsDir, req.file.filename);
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            } catch (err) {
+                console.error('Error al limpiar archivo subido tras fallo:', err.message);
+            }
+        }
+        res.status(400).json({ error: error.message || 'Error al actualizar el perfil' });
+    }
+});
+
+// DELETE avatar for current user
+router.delete('/perfil/foto', verificarSesion, async (req, res) => {
+    try {
+        const usuarioId = req.session.usuario.id;
+        const usuario = await obtenerUsuarioPorId(usuarioId);
+        if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!usuario.foto) return res.status(400).json({ error: 'El usuario no tiene una foto' });
+
+        // Borrar archivo físico
+        const filePath = path.join(uploadsDir, usuario.foto);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+        // Actualizar DB para remover referencia
+        const usuarioActualizado = await actualizarUsuario(usuarioId, { foto: null });
+        res.status(200).json({ mensaje: 'Foto de perfil eliminada', usuario: usuarioActualizado });
+    } catch (error) {
+        console.error('Error al eliminar foto de perfil:', error.message);
+        res.status(400).json({ error: error.message || 'Error al eliminar foto' });
+    }
 });
 
 router.post('/doctores', verificarAdmin, async (req, res) => {
