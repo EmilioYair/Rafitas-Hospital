@@ -32,6 +32,18 @@ app.use(session({
     }
 }));
 
+// Middleware para reconstruir sesión en Vercel (Serverless)
+app.use((req, res, next) => {
+    if (!req.session.usuario && req.cookies.usuario_id) {
+        req.session.usuario = {
+            id: req.cookies.usuario_id,
+            nombre: req.cookies.usuario_nombre,
+            rol: req.cookies.usuario_rol
+        };
+    }
+    next();
+});
+
 // Rutas
 // Rutas
 app.use('/', require('./routes/public.routes'));

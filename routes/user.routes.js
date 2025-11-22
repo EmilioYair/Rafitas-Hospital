@@ -12,39 +12,31 @@ const { verificarSesion } = require('../middlewares/autenticacion');
 const diasNoDisponibles = ['2025-10-18', '2025-10-19', '2025-10-25', '2025-10-26'];
 
 // Configuración de Multer para subida de archivos
-let uploadsDir = null;
-let isUploadEnabled = false;
+let uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
 
-try {
-    uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
-    if (!fs.existsSync(uploadsDir)) {
+// Asegurar que el directorio existe
+if (!fs.existsSync(uploadsDir)) {
+    try {
         fs.mkdirSync(uploadsDir, { recursive: true });
+    } catch (err) {
+        console.error('Error creating uploads directory:', err);
     }
-    isUploadEnabled = true;
-} catch (err) {
-    console.warn('⚠ Local file storage disabled:', err.message);
-    isUploadEnabled = false;
 }
 
-const memoryStorage = multer.memoryStorage();
-const diskStorage = multer.diskStorage({
+const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, uploadsDir);
     },
     filename: function (req, file, cb) {
-        try {
-            const usuarioId = req.session && req.session.usuario ? req.session.usuario.id : 'anon';
-            const ext = path.extname(file.originalname);
-            const filename = `${usuarioId}-${Date.now()}${ext}`;
-            cb(null, filename);
-        } catch (err) {
-            cb(err);
-        }
+        const usuarioId = req.session && req.session.usuario ? req.session.usuario.id : 'anon';
+        const ext = path.extname(file.originalname);
+        const filename = `${usuarioId}-${Date.now()}${ext}`;
+        cb(null, filename);
     }
 });
 
 const upload = multer({
-    storage: isUploadEnabled ? diskStorage : memoryStorage,
+    storage: storage,
     limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
     fileFilter: (req, file, cb) => {
         const allowed = /jpeg|jpg|png|gif/;
@@ -134,28 +126,21 @@ router.post('/perfil', upload.single('foto'), async (req, res) => {
         const usuarioId = req.session.usuario.id;
         const datosActualizados = { ...req.body };
 
+        // Si Multer procesó el archivo, estará en req.file
         if (req.file) {
-            const ext = path.extname(req.file.originalname);
-            const filename = `${usuarioId}-${Date.now()}${ext}`;
-            datosActualizados.foto = filename;
-
-            if (isUploadEnabled) {
-                try {
-                    const filePath = path.join(uploadsDir, filename);
-                    fs.writeFileSync(filePath, req.file.buffer);
-                } catch (err) {
-                    console.warn('Could not save avatar to disk:', err.message);
-                }
-            }
+            datosActualizados.foto = req.file.filename;
         }
 
         const usuarioPrev = await obtenerUsuarioPorId(usuarioId);
         const usuarioActualizado = await actualizarUsuario(usuarioId, datosActualizados);
 
-        if (req.file && isUploadEnabled && usuarioPrev && usuarioPrev.foto && usuarioPrev.foto !== usuarioActualizado.foto) {
+        // Borrar foto anterior si se subió una nueva y existía una previa
+        if (req.file && usuarioPrev && usuarioPrev.foto && usuarioPrev.foto !== usuarioActualizado.foto) {
             try {
                 const oldPath = path.join(uploadsDir, usuarioPrev.foto);
-                if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath);
+                }
             } catch (err) {
                 console.error('Error deleting old avatar:', err.message);
             }
