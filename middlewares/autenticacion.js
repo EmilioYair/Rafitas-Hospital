@@ -53,8 +53,22 @@ const verificarUsuarioOAdmin = (req, res, next) => {
     res.redirect('/');
 };
 
+/**
+ * Middleware: Verifica si el usuario es administrador (API - JSON)
+ * Devuelve 403 JSON si falla, no redirect
+ */
+const verificarAdminAPI = (req, res, next) => {
+    reconstruirSesionDeCookies(req);
+
+    if (req.session.usuario && req.session.usuario.rol === 'admin') {
+        return next();
+    }
+    res.status(403).json({ error: 'Acceso denegado. Se requieren permisos de administrador.' });
+};
+
 module.exports = {
     verificarSesion,
     verificarAdmin,
-    verificarUsuarioOAdmin
+    verificarUsuarioOAdmin,
+    verificarAdminAPI
 };

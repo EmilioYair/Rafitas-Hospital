@@ -4,9 +4,10 @@ const Usuario = require('../models/usuario');
 const { obtenerTodosLosUsuarios, promoverAAdmin, descensoDeAdmin, eliminarUsuario } = require('../bd/usuariosBD');
 const { obtenerTodasLasCitas, borrarCitaAdmin } = require('../bd/citasBD');
 const { crearDoctor, obtenerDoctores, actualizarDoctor, borrarDoctor } = require('../bd/doctoresBD');
-const { verificarAdmin } = require('../middlewares/autenticacion');
+const { verificarAdmin, verificarAdminAPI } = require('../middlewares/autenticacion');
 
-// Todas las rutas de este archivo requieren verificarAdmin
+// Todas las rutas de este archivo requieren verificarAdmin (por defecto para vistas)
+// Pero sobrescribiremos para las APIs
 router.use(verificarAdmin);
 
 // --- RUTA GET DE ADMIN (DASHBOARD) ---
@@ -49,7 +50,8 @@ router.get('/manage-doctors', async (req, res) => {
     }
 });
 
-router.post('/doctores', async (req, res) => {
+// Rutas API usan verificarAdminAPI (JSON errors)
+router.post('/doctores', verificarAdminAPI, async (req, res) => {
     try {
         const nuevoDoctor = await crearDoctor(req.body);
         res.status(201).json({ mensaje: 'Doctor añadido exitosamente', doctor: nuevoDoctor });
@@ -58,7 +60,7 @@ router.post('/doctores', async (req, res) => {
     }
 });
 
-router.post('/doctores/actualizar/:id', async (req, res) => {
+router.post('/doctores/actualizar/:id', verificarAdminAPI, async (req, res) => {
     try {
         const doctorId = req.params.id;
         const datosDoctor = req.body;
@@ -69,7 +71,7 @@ router.post('/doctores/actualizar/:id', async (req, res) => {
     }
 });
 
-router.delete('/doctores/:id', async (req, res) => {
+router.delete('/doctores/:id', verificarAdminAPI, async (req, res) => {
     try {
         const doctorId = req.params.id;
         await borrarDoctor(doctorId);
@@ -81,7 +83,7 @@ router.delete('/doctores/:id', async (req, res) => {
 
 // --- GESTIÓN DE CITAS (ADMIN) ---
 
-router.delete('/citas/:id', async (req, res) => {
+router.delete('/citas/:id', verificarAdminAPI, async (req, res) => {
     try {
         const citaId = req.params.id;
         await borrarCitaAdmin(citaId);
@@ -107,7 +109,7 @@ router.get('/manage-users', async (req, res) => {
     }
 });
 
-router.post('/usuarios/:id/promover-admin', async (req, res) => {
+router.post('/usuarios/:id/promover-admin', verificarAdminAPI, async (req, res) => {
     try {
         const usuarioId = req.params.id;
         if (usuarioId === req.cookies.usuario_id) {
@@ -120,7 +122,7 @@ router.post('/usuarios/:id/promover-admin', async (req, res) => {
     }
 });
 
-router.post('/usuarios/:id/remover-admin', async (req, res) => {
+router.post('/usuarios/:id/remover-admin', verificarAdminAPI, async (req, res) => {
     try {
         const usuarioId = req.params.id;
         if (usuarioId === req.cookies.usuario_id) {
@@ -133,7 +135,7 @@ router.post('/usuarios/:id/remover-admin', async (req, res) => {
     }
 });
 
-router.post('/usuarios/:id/eliminar', async (req, res) => {
+router.post('/usuarios/:id/eliminar', verificarAdminAPI, async (req, res) => {
     try {
         const usuarioId = req.params.id;
         if (usuarioId === req.cookies.usuario_id) {
